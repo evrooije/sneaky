@@ -37,12 +37,13 @@ underneath you):
 -- Register the sneaky node to place underneath the player
 minetest.register_node("sneaky:sneaky", {
     drawtype = "airlike",
+    groups = { fall_damage_add_percent = -100 },
     selection_box = {
         type = "fixed",
 		fixed = {
-                    {-0.00001, -0.00001, -0.00001, 0.00001, 0.00001, 0.00001}
-			}
-		}
+            {-0.00001, -0.00001, -0.00001, 0.00001, 0.00001, 0.00001}
+        }
+    }
 })
 
 -- Check for key presses sneak + jump or sneak only and check if there
