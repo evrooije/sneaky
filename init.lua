@@ -37,13 +37,13 @@ underneath you):
 -- Register the sneaky node to place underneath the player
 minetest.register_node("sneaky:sneaky", {
     drawtype = "airlike",
-    groups = { fall_damage_add_percent = -100 },
     selection_box = {
         type = "fixed",
 		fixed = {
             {-0.00001, -0.00001, -0.00001, 0.00001, 0.00001, 0.00001}
         }
-    }
+    },
+    groups = { fall_damage_add_percent = -100 }
 })
 
 -- Check for key presses sneak + jump or sneak only and check if there
@@ -55,6 +55,10 @@ minetest.register_globalstep(function(dtime)
     end
 
     local pos = { x = player:getpos().x, y = player:getpos().y, z = player:getpos().z }
+    local pos2above = { x = pos.x, y = pos.y + 2, z = pos.z }
+    local node2above = minetest.get_node(pos2above)
+    local pos1above = { x = pos.x, y = pos.y + 1, z = pos.z }
+    local node1above = minetest.get_node(pos1above)
     local pos0below = { x = pos.x, y = pos.y, z = pos.z }
     local node0below = minetest.get_node(pos0below)
     local pos1below = { x = pos.x, y = pos.y - 1, z = pos.z }
@@ -120,7 +124,16 @@ minetest.register_globalstep(function(dtime)
 
         if sneakyclimb then
             player:set_physics_override( { gravity = 0, jump = 0 } )
-            player:setpos( { x = player:getpos().x, y = player:getpos().y + 0.2, z = player:getpos().z } )
+            player:setpos( { x = player:getpos().x, y = player:getpos().y + 0.25, z = player:getpos().z } )
+            if (node2above.name == "sneaky:sneaky") then
+                minetest.remove_node(pos2above)
+            end
+            if (node1above.name == "sneaky:sneaky") then
+                minetest.remove_node(pos1above)
+            end
+            if (node0below.name == "sneaky:sneaky") then
+                minetest.remove_node(pos0below)
+            end
             if (node1below.name == "air") then
                 minetest.place_node(pos1below, { name = "sneaky:sneaky" } )
             end
@@ -168,11 +181,20 @@ minetest.register_globalstep(function(dtime)
 
         if sneakyhover then
             player:set_physics_override( { gravity = 0, jump = 1 } )
+            if (node2above.name == "sneaky:sneaky") then
+                minetest.remove_node(pos2above)
+            end
+            if (node1above.name == "sneaky:sneaky") then
+                minetest.remove_node(pos1above)
+            end
+            if (node0below.name == "sneaky:sneaky") then
+                minetest.remove_node(pos0below)
+            end
             if (node1below.name == "air") then
                 minetest.place_node(pos1below, { name = "sneaky:sneaky" } )
             end
-            if (node2below.name == "sneaky:sneaky") then
-                minetest.remove_node(pos2below)
+            if (node2below.name == "air") then
+                minetest.place_node(pos2below, { name = "sneaky:sneaky" } )
             end
             return
         end
@@ -180,8 +202,15 @@ minetest.register_globalstep(function(dtime)
 
     -- Reset the original settings. Better implementation is obviously
     -- to backup the original settings and restore them ... Also remove
-    -- sneaky nodes so that the player will start falling
+    -- sneaky nodes so that the player will start falling and cleanup
+    -- any leftover sneaky nodes above the player as well
     player:set_physics_override( { gravity = 1, jump = 1 } )
+    if (node2above.name == "sneaky:sneaky") then
+        minetest.remove_node(pos2above)
+    end
+    if (node1above.name == "sneaky:sneaky") then
+        minetest.remove_node(pos1above)
+    end
     if (node0below.name == "sneaky:sneaky") then
         minetest.remove_node(pos0below)
     end
