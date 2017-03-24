@@ -43,7 +43,15 @@ minetest.register_node("sneaky:sneaky", {
             {-0.00001, -0.00001, -0.00001, 0.00001, 0.00001, 0.00001}
         }
     },
-    groups = { fall_damage_add_percent = -100 }
+    groups = { fall_damage_add_percent = -100 },
+    sunlight_propagates = true,
+    buildable_to = true,
+    after_place_node = function(pos, placer, itemstack, pointed_thing)
+        minetest.get_node_timer(pos):start(60)
+    end,
+    on_timer = function(pos, elapsed)
+        return false
+    end
 })
 
 -- Check for key presses sneak + jump or sneak only and check if there
@@ -54,6 +62,8 @@ minetest.register_globalstep(function(dtime)
         return
     end
 
+    -- Get the positions above, below and at the player, needed to do
+    -- sneaky checks, sneaky creation and sneaky removal
     local pos = { x = player:getpos().x, y = player:getpos().y, z = player:getpos().z }
     local pos2above = { x = pos.x, y = pos.y + 2, z = pos.z }
     local node2above = minetest.get_node(pos2above)
@@ -66,6 +76,7 @@ minetest.register_globalstep(function(dtime)
     local pos2below = { x = pos.x, y = pos.y - 2, z = pos.z }
     local node2below = minetest.get_node(pos2below)
 
+    -- If we sneak and jump, we go try do the ladder thing
     if player:get_player_control().sneak and player:get_player_control().jump then
 
         -- Table of positions we are interested in around us
@@ -84,7 +95,7 @@ minetest.register_globalstep(function(dtime)
         local pos2right = { x = pos.x + 1, y = pos.y + 2, z = pos.z }
         local pos2left = { x = pos.x - 1, y = pos.y + 2, z = pos.z }
 
-        -- Nodes around is
+        -- Nodes around us
         local node0front = minetest.get_node(pos0front)
         local node0back = minetest.get_node(pos0back)
         local node0right = minetest.get_node(pos0right)
@@ -144,8 +155,10 @@ minetest.register_globalstep(function(dtime)
         end
     end
 
+    -- If we sneak, we go try do the hover thing
     if player:get_player_control().sneak then
 
+        -- Only get two layers this time
         local pos0front = { x = pos.x, y = pos.y - 1, z = pos.z + 1 }
         local pos0back = { x = pos.x, y = pos.y - 1, z = pos.z + -1 }
         local pos0right = { x = pos.x + 1, y = pos.y - 1, z = pos.z }
