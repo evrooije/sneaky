@@ -1,5 +1,9 @@
 --[[
 Beerholder's sneaky ladder. WIP name: [MOD] Sneaky [sneaky]
+
+Many thanks to PilzAdam for his example on using entities (his boats
+mod) to move the player and setting velocities.
+
 To sneak climb we need to consider either something, then air above
 it and then something again, or air, something and air above it.
 This pattern needs to be anywhere next to the player.
@@ -25,7 +29,7 @@ underneath you):
 ]]--
 
 -- Register the sneaky node to place underneath the player
-minetest.register_node("sneaky:sneaky", {
+--[[minetest.register_node("sneaky:sneaky", {
     drawtype = "airlike",
     groups = { fall_damage_add_percent = -100 },
     selection_box = {
@@ -34,7 +38,43 @@ minetest.register_node("sneaky:sneaky", {
             {-0.00001, -0.00001, -0.00001, 0.00001, 0.00001, 0.00001}
         }
     }
+})]]--
+
+minetest.register_entity("sneaky:sneaky", {
+	physical = false,
+	collisionbox = {-0.1,-0.5,-0.1, 0.1,-0.1,0.1},
+	is_visible = false,
 })
+
+minetest.register_entity("sneaky:sneakyhard", {
+	physical = true,
+	collisionbox = {-0.1,-0.5,-0.1, 0.1,-0.1,0.1},
+	is_visible = false,
+})
+
+local sneaky = nil
+local sneakyhard = nil
+
+local function get_velocity(v, yaw, y)
+	local x = math.cos(yaw) * v
+	local z = math.sin(yaw) * v
+	return { x = x, y = y, z = z }
+end
+
+minetest.register_on_dieplayer(function(player)
+    player:set_detach()
+
+    if (sneaky ~= nil) then
+        sneaky:remove()
+        sneaky = nil
+    end
+
+    if (sneakyhard ~= nil) then
+        sneakyhard:remove()
+        sneakyhard = nil
+    end
+
+end)
 
 -- Check for key presses sneak + jump or sneak only and check if there
 -- is the pattern of blocks with air in between which is the sneak ladder
@@ -44,16 +84,12 @@ minetest.register_globalstep(function(dtime)
         return
     end
 
-    local pos = { x = player:getpos().x, y = player:getpos().y, z = player:getpos().z }
-    local pos0below = { x = pos.x, y = pos.y, z = pos.z }
-    local node0below = minetest.get_node(pos0below)
-    local pos1below = { x = pos.x, y = pos.y - 1, z = pos.z }
-    local node1below = minetest.get_node(pos1below)
-    local pos2below = { x = pos.x, y = pos.y - 2, z = pos.z }
-    local node2below = minetest.get_node(pos2below)
+    local sneakyclimb = false
+    local sneakyhover = false
 
-    if player:get_player_control().sneak and player:get_player_control().jump then
+    local pos = player:getpos()
 
+    if player:get_player_control().sneak or player:get_player_control().jump then
         -- Table of positions we are interested in around us
         local pos0front = { x = pos.x, y = pos.y, z = pos.z + 1 }
         local pos0back = { x = pos.x, y = pos.y, z = pos.z + -1 }
@@ -70,7 +106,7 @@ minetest.register_globalstep(function(dtime)
         local pos2right = { x = pos.x + 1, y = pos.y + 2, z = pos.z }
         local pos2left = { x = pos.x - 1, y = pos.y + 2, z = pos.z }
 
-        -- Nodes around is
+        -- Nodes around us
         local node0front = minetest.get_node(pos0front)
         local node0back = minetest.get_node(pos0back)
         local node0right = minetest.get_node(pos0right)
@@ -86,100 +122,123 @@ minetest.register_globalstep(function(dtime)
         local node2right = minetest.get_node(pos2right)
         local node2left = minetest.get_node(pos2left)
 
-        local sneakyclimb = false
+        if player:get_player_control().sneak and player:get_player_control().jump then
 
-        -- Check for air something air/ something air something pattern
-        -- Set sneakyclimb to true if found
-        if node0front.name ~= "air" and node1front.name == "air" and node2front.name ~= "air" then
-            sneakyclimb = true
-        elseif node0front.name == "air" and node1front.name ~= "air" and node2front.name == "air" then
-            sneakyclimb = true
-        elseif node0back.name ~= "air" and node1back.name == "air" and node2back.name ~= "air" then
-            sneakyclimb = true
-        elseif node0back.name == "air" and node1back.name ~= "air" and node2back.name == "air" then
-            sneakyclimb = true
-        elseif node0right.name ~= "air" and node1right.name == "air" and node2right.name ~= "air" then
-            sneakyclimb = true
-        elseif node0right.name == "air" and node1right.name ~= "air" and node2right.name == "air" then
-            sneakyclimb = true
-        elseif node0left.name ~= "air" and node1left.name == "air" and node2left.name ~= "air" then
-            sneakyclimb = true
-        elseif node0left.name == "air" and node1left.name ~= "air" and node2left.name == "air" then
-            sneakyclimb = true
+            -- Check for air something air/ something air something pattern
+            -- Set sneakyclimb to true if found
+            if node0front.name ~= "air" and node1front.name == "air" and node2front.name ~= "air" then
+                sneakyclimb = true
+            elseif node0front.name == "air" and node1front.name ~= "air" and node2front.name == "air" then
+                sneakyclimb = true
+            elseif node0back.name ~= "air" and node1back.name == "air" and node2back.name ~= "air" then
+                sneakyclimb = true
+            elseif node0back.name == "air" and node1back.name ~= "air" and node2back.name == "air" then
+                sneakyclimb = true
+            elseif node0right.name ~= "air" and node1right.name == "air" and node2right.name ~= "air" then
+                sneakyclimb = true
+            elseif node0right.name == "air" and node1right.name ~= "air" and node2right.name == "air" then
+                sneakyclimb = true
+            elseif node0left.name ~= "air" and node1left.name == "air" and node2left.name ~= "air" then
+                sneakyclimb = true
+            elseif node0left.name == "air" and node1left.name ~= "air" and node2left.name == "air" then
+                sneakyclimb = true
+            end
+
+            if sneakyclimb then
+                if (sneaky == nil) then
+                    player:set_physics_override( { gravity = 0, jump = 0 } )
+                    sneaky = minetest.add_entity(player:getpos(), "sneaky:sneaky")
+                    sneaky:set_armor_groups( { immortal = 1 } )
+                    player:set_attach(sneaky, "", {x=0,y=0.5,z=0}, {x=0,y=0,z=0})
+                end
+                sneaky:setvelocity( { x = 0, y = 5, z = 0 } )
+            end
         end
 
-        if sneakyclimb then
-            player:set_physics_override( { gravity = 0, jump = 0 } )
-            player:setpos( { x = player:getpos().x, y = player:getpos().y + 0.2, z = player:getpos().z } )
-            if (node1below.name == "air") then
-                minetest.place_node(pos1below, { name = "sneaky:sneaky" } )
+        if player:get_player_control().sneak and not player:get_player_control().jump then
+
+            -- Check for air something air/ something air something pattern
+            -- Set sneakyclimb to true if found
+            if node0front.name ~= "air" and node1front.name == "air" and node2front.name ~= "air" then
+                sneakyhover = true
+            elseif node0front.name == "air" and node1front.name ~= "air" and node2front.name == "air" then
+                sneakyhover = true
+            elseif node0back.name ~= "air" and node1back.name == "air" and node2back.name ~= "air" then
+                sneakyhover = true
+            elseif node0back.name == "air" and node1back.name ~= "air" and node2back.name == "air" then
+                sneakyhover = true
+            elseif node0right.name ~= "air" and node1right.name == "air" and node2right.name ~= "air" then
+                sneakyhover = true
+            elseif node0right.name == "air" and node1right.name ~= "air" and node2right.name == "air" then
+                sneakyhover = true
+            elseif node0left.name ~= "air" and node1left.name == "air" and node2left.name ~= "air" then
+                sneakyhover = true
+            elseif node0left.name == "air" and node1left.name ~= "air" and node2left.name == "air" then
+                sneakyhover = true
             end
-            if (node2below.name == "sneaky:sneaky") then
-                minetest.remove_node(pos2below)
+
+            if sneakyhover then
+                if (sneaky == nil) then
+                    player:set_physics_override( { gravity = 0, jump = 1 } )
+                    sneaky = minetest.add_entity(player:getpos(), "sneaky:sneaky")
+                    sneaky:set_armor_groups( { immortal = 1 } )
+                    player:set_attach(sneaky, "", {x=0,y=5,z=0}, {x=0,y=0,z=0})
+                end
+                sneaky:setvelocity( { x = 0, y = 0, z = 0 } )
             end
-            return
-        end
-    end
-
-    if player:get_player_control().sneak then
-
-        local pos0front = { x = pos.x, y = pos.y - 1, z = pos.z + 1 }
-        local pos0back = { x = pos.x, y = pos.y - 1, z = pos.z + -1 }
-        local pos0right = { x = pos.x + 1, y = pos.y - 1, z = pos.z }
-        local pos0left = { x = pos.x - 1, y = pos.y - 1, z = pos.z }
-
-        local pos1front = { x = pos.x, y = pos.y, z = pos.z + 1 }
-        local pos1back = { x = pos.x, y = pos.y, z = pos.z + -1 }
-        local pos1right = { x = pos.x + 1, y = pos.y, z = pos.z }
-        local pos1left = { x = pos.x - 1, y = pos.y, z = pos.z }
-
-        local node0front = minetest.get_node(pos0front)
-        local node0back = minetest.get_node(pos0back)
-        local node0right = minetest.get_node(pos0right)
-        local node0left = minetest.get_node(pos0left)
-
-        local node1front = minetest.get_node(pos1front)
-        local node1back = minetest.get_node(pos1back)
-        local node1right = minetest.get_node(pos1right)
-        local node1left = minetest.get_node(pos1left)
-
-        local sneakyhover = false
-
-        -- Check for air something and set sneakyhover if found
-        if node0front.name == "air" and node1front.name ~= "air" then
-            sneakyhover = true
-        elseif node0back.name == "air" and node1back.name ~= "air" then
-            sneakyhover = true
-        elseif node0right.name == "air" and node1right.name ~= "air" then
-            sneakyhover = true
-        elseif node0left.name == "air" and node1left.name ~= "air" then
-            sneakyhover = true
-        end
-
-        if sneakyhover then
-            player:set_physics_override( { gravity = 0, jump = 1 } )
-            if (node1below.name == "air") then
-                minetest.place_node(pos1below, { name = "sneaky:sneaky" } )
-            end
-            if (node2below.name == "sneaky:sneaky") then
-                minetest.remove_node(pos2below)
-            end
-            return
         end
     end
 
-    -- Reset the original settings. Better implementation is obviously
-    -- to backup the original settings and restore them ... Also remove
-    -- sneaky nodes so that the player will start falling
-    player:set_physics_override( { gravity = 1, jump = 1 } )
-    if (node0below.name == "sneaky:sneaky") then
-        minetest.remove_node(pos0below)
+    if sneaky ~= nil and (sneakyclimb or sneakyhover) then
+        local moving = false
+        local direction
+		if player:get_player_control().up then
+			direction = (math.pi / 2)
+			moving = true
+		end
+		if player:get_player_control().down then
+			direction = (math.pi * 1.5)
+			moving = true
+		end
+		if player:get_player_control().left then
+			direction = math.pi
+			moving = true
+		end
+		if player:get_player_control().right then
+			direction = 0
+			moving = true
+		end
+		if moving then
+            if sneakyhard == nil then
+                sneakyhard = minetest.add_entity(player:getpos(), "sneaky:sneakyhard")
+                sneakyhard:set_armor_groups( { immortal = 1 } )
+                player:set_attach(sneakyhard, "", {x=0,y=0.5,z=0}, {x=0,y=0,z=0})
+            end
+			sneakyhard:setvelocity(get_velocity(1, player:get_look_horizontal() + direction, sneaky:getvelocity().y))
+            sneaky:remove()
+            sneaky = nil
+		else
+            if sneaky ~= nil then
+                sneaky:setvelocity( { x = 0, y = sneaky:getvelocity().y, z = 0 })
+            elseif sneakyhard ~= nil then
+                sneakyhard:setvelocity( { x = 0, y = sneakyhard:getvelocity().y, z = 0 })
+            end
+		end
+        return
     end
-    if (node1below.name == "sneaky:sneaky") then
-        minetest.remove_node(pos1below)
+
+    if (sneaky ~= nil) then
+        player:set_physics_override( { gravity = 1, jump = 1 } )
+        player:set_detach()
+        sneaky:remove()
+        sneaky = nil
     end
-    if (node2below.name == "sneaky:sneaky") then
-        minetest.remove_node(pos2below)
+
+    if (sneakyhard ~= nil) then
+        player:set_physics_override( { gravity = 1, jump = 1 } )
+        player:set_detach()
+        sneakyhard:remove()
+        sneakyhard = nil
     end
 
 end)
