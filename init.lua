@@ -106,6 +106,8 @@ minetest.register_globalstep(function(dtime)
         local pos2right = { x = pos.x + 1, y = pos.y + 2, z = pos.z }
         local pos2left = { x = pos.x - 1, y = pos.y + 2, z = pos.z }
 
+        local pos2above = { x = pos.x, y = pos.y + 2, z = pos.z }
+
         -- Nodes around us
         local node0front = minetest.get_node(pos0front)
         local node0back = minetest.get_node(pos0back)
@@ -121,6 +123,8 @@ minetest.register_globalstep(function(dtime)
         local node2back = minetest.get_node(pos2back)
         local node2right = minetest.get_node(pos2right)
         local node2left = minetest.get_node(pos2left)
+
+        local node2above = minetest.get_node(pos2above)
 
         if player:get_player_control().sneak and player:get_player_control().jump then
 
@@ -151,7 +155,11 @@ minetest.register_globalstep(function(dtime)
                     sneaky:set_armor_groups( { immortal = 1 } )
                     player:set_attach(sneaky, "", {x=0,y=0.5,z=0}, {x=0,y=0,z=0})
                 end
-                sneaky:setvelocity( { x = 0, y = 5, z = 0 } )
+                if node2above.name == "air" then
+                    sneaky:setvelocity( { x = 0, y = 5, z = 0 } )
+                else
+                    sneaky:setvelocity( { x = 0, y = 0, z = 0 } )
+                end
             end
         end
 
